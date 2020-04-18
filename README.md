@@ -1,0 +1,1 @@
+Worker Pool implementation in Go for learning purposes
