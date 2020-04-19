@@ -15,7 +15,7 @@ type WorkerPool struct {
 	jobs       chan func()
 	quit       chan bool
 	wgPool     sync.WaitGroup
-	wgWorkers  sync.WaitGroup
+	wgWorkers  *sync.WaitGroup
 }
 
 // NewWorkerPool spawn a worker pool
@@ -31,7 +31,7 @@ func NewWorkerPool(maxWorkers int) *WorkerPool {
 
 	// spawn workers
 	for i := 0; i < maxWorkers; i++ {
-		workers[i] = NewWorker(pool, wgWorkers)
+		workers[i] = NewWorker(pool, &wgWorkers)
 	}
 	return &WorkerPool{
 		maxWorkers: maxWorkers,
@@ -40,7 +40,7 @@ func NewWorkerPool(maxWorkers int) *WorkerPool {
 		jobs:       make(chan func()),
 		quit:       make(chan bool),
 		wgPool:     sync.WaitGroup{},
-		wgWorkers:  wgWorkers,
+		wgWorkers:  &wgWorkers,
 	}
 }
 
@@ -79,14 +79,13 @@ func (wp *WorkerPool) dispatch() {
 			availableWorker := <-wp.pool
 			availableWorker <- job
 		case <-wp.quit:
-			fmt.Println("Stopping WorkerPool")
 			for _, worker := range wp.workers {
 				worker.Stop()
-				wp.wgWorkers.Wait()
-				wp.wgPool.Done()
-				fmt.Println("WorkerPool is stopped")
-				return
 			}
+			wp.wgWorkers.Wait()
+			wp.wgPool.Done()
+			fmt.Println("WorkerPool is stopped")
+			return
 		}
 	}
 }

@@ -8,17 +8,17 @@ import (
 
 // Worker implementation to manage worker
 type Worker struct {
-	Pool chan chan func()
-	Jobs chan func()
+	pool chan chan func()
+	jobs chan func()
 	quit chan bool
-	done sync.WaitGroup
+	done *sync.WaitGroup
 }
 
 // NewWorker spawn a Worker
-func NewWorker(pool chan chan func(), done sync.WaitGroup) *Worker {
+func NewWorker(pool chan chan func(), done *sync.WaitGroup) *Worker {
 	return &Worker{
-		Pool: pool,
-		Jobs: make(chan func()),
+		pool: pool,
+		jobs: make(chan func()),
 		quit: make(chan bool),
 		done: done,
 	}
@@ -29,10 +29,10 @@ func (w *Worker) Start() {
 	go func() {
 		w.done.Add(1)
 		for {
-			w.Pool <- w.Jobs
+			w.pool <- w.jobs
 
 			select {
-			case job := <-w.Jobs:
+			case job := <-w.jobs:
 				fmt.Println("start processing job")
 				job()
 				fmt.Println("job processing finished")

@@ -2,7 +2,9 @@ package wpool
 
 import (
 	"runtime"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestShouldCreateWorkerPool(t *testing.T) {
@@ -25,8 +27,20 @@ func TestShouldCreateWorkerPoolWithCPU(t *testing.T) {
 	}
 }
 
-func TestShouldSubmitJob(t *testing.T) {
+func TestShouldSubmitAndStop(t *testing.T) {
+	workerPool := NewWorkerPool(-1)
+	workerPool.Start()
+	defer workerPool.Stop()
 
-	// TODO
+	wg := sync.WaitGroup{}
 
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go workerPool.Submit(func() {
+			time.Sleep(1 * time.Second)
+			wg.Done()
+		})
+	}
+
+	wg.Wait()
 }

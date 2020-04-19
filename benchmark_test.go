@@ -3,23 +3,29 @@ package wpool
 import (
 	"runtime"
 	"testing"
-	"time"
 )
 
-func BenchMarkWpool(b *testing.B) {
+func BenchmarkWpool(b *testing.B) {
 	wp := NewWorkerPool(runtime.NumCPU())
 	wp.Start()
 	defer wp.Stop()
 
 	for i := 0; i < b.N; i++ {
 		wp.Submit(func() {
-			time.Sleep(1 * time.Second)
+			Fib(10)
 		})
 	}
 }
 
-func BenchMarkNonWpool(b *testing.B) {
+func BenchmarkNonWpool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		time.Sleep(1 * time.Second)
+		Fib(10)
 	}
+}
+
+func Fib(n int) int {
+	if n < 2 {
+		return n
+	}
+	return Fib(n-1) + Fib(n-2)
 }
