@@ -3,16 +3,25 @@ package wpool
 
 import (
 	"fmt"
+	"log"
 	"runtime"
 	"sync"
+
+	"github.com/rs/xid"
 )
+
+// Job implementation to manage task execution
+type Job struct {
+	id   string
+	task func()
+}
 
 // WorkerPool implementation to manage workers and jobs
 type WorkerPool struct {
 	maxWorkers int
 	workers    []*Worker
-	pool       chan chan func()
-	jobs       chan func()
+	pool       chan chan Job
+	jobs       chan Job
 	quit       chan bool
 	wgPool     sync.WaitGroup
 	wgWorkers  *sync.WaitGroup
@@ -26,18 +35,18 @@ func NewWorkerPool(maxWorkers int) *WorkerPool {
 	}
 
 	wgWorkers := sync.WaitGroup{}
-	pool := make(chan chan func(), maxWorkers)
+	pool := make(chan chan Job, maxWorkers)
 	workers := make([]*Worker, maxWorkers, maxWorkers)
 
 	// spawn workers
 	for i := 0; i < maxWorkers; i++ {
-		workers[i] = NewWorker(pool, &wgWorkers)
+		workers[i] = NewWorker(i, pool, &wgWorkers)
 	}
 	return &WorkerPool{
 		maxWorkers: maxWorkers,
 		workers:    workers,
 		pool:       pool,
-		jobs:       make(chan func()),
+		jobs:       make(chan Job),
 		quit:       make(chan bool),
 		wgPool:     sync.WaitGroup{},
 		wgWorkers:  &wgWorkers,
@@ -64,7 +73,8 @@ func (wp *WorkerPool) Stop() {
 // Submit a job to the WorkerPool
 func (wp *WorkerPool) Submit(job func()) {
 	if job != nil {
-		fmt.Println("Submitting a job to the WorkerPool")
+		job := Job{id: xid.New().String(), task: job}
+		log.Printf("Submitting a job [%s] to the WorkerPool", job.id)
 		wp.jobs <- job
 	}
 }
